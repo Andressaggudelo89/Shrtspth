@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  *
@@ -25,9 +26,10 @@ public class Frame1 extends javax.swing.JFrame {
 
     ArrayList<Node> nodos;
     ArrayList<Edge> arcos;
+    int mat[][];
     String nodoinicial = null, nodofinal = null;
     int cont;
-    int iniciox, inicioy, finx, finy;
+    int iniciox, inicioy, finx, finy,inx,iny,fnx,fny;
     
     /**
      * Creates new form Frame1
@@ -64,6 +66,7 @@ public class Frame1 extends javax.swing.JFrame {
             System.out.println("Hubo un problema con las configuraciones internas..");
             System.exit(0);
         }
+        mat= new int[nodos.size()][nodos.size()];
     }
     
     
@@ -71,7 +74,7 @@ public class Frame1 extends javax.swing.JFrame {
     int conta=1;
     g.setColor(Color.black);
     for (Node nodo : nodos) {
-        g.fillOval(nodo.posx-8, nodo.posy-8, 20, 20);
+        //g.fillOval(nodo.posx-8, nodo.posy-8, 20, 20);
         g.drawString(Integer.toString(conta), nodo.posx-11, nodo.posy-10);
         conta++;
     }
@@ -91,19 +94,21 @@ public class Frame1 extends javax.swing.JFrame {
                     g.fillOval(e.getX()-13, e.getY()-13, 25, 25);
                     g.setColor(Color.white);
                     g.drawString("L", e.getX()-4, e.getY()+4);
-                    finx=e.getX()-10;
-                    finy=e.getY()-10;
+                    finx=e.getX();
+                    finy=e.getY();
                     cont++;
                     select.setEnabled(false);
                     Calcularnodoscerca(iniciox,inicioy,finx,finy,PanelMap.getGraphics());
+                    //GettingStarted(PanelMap.getGraphics());
+                    Dijkstra(PanelMap.getGraphics());
                 }
                 if(cont==0){
                     g.setColor(Color.red);
                     g.fillOval(e.getX()-13, e.getY()-13, 25, 25);
                     g.setColor(Color.white);
                     g.drawString("P", e.getX()-4, e.getY()+4);
-                    iniciox=e.getX()-10;
-                    inicioy=e.getY()-10;
+                    iniciox=e.getX();
+                    inicioy=e.getY();
                     cont++;
                 }
             }
@@ -143,6 +148,8 @@ public class Frame1 extends javax.swing.JFrame {
         }
         g.setColor(Color.red);
         g.fillOval(x-8, y-8, 20, 20);
+        inx=x;
+        iny=y;
         
         //Buscar el nodo que esté más cerca del punto final...
         dist=2000;
@@ -159,18 +166,12 @@ public class Frame1 extends javax.swing.JFrame {
         }
         g.setColor(Color.red);
         g.fillOval(x-8, y-8, 20, 20);
+        fnx=x;
+        fny=y;
     }
     
-    
-    private void WidthLine(Graphics g){
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(Color.red);
-        g2.setStroke(new BasicStroke(8));
-        g2.draw(new Line2D.Float(1,2,3,4));
-    }
     
     private void MatrizDeCostos(){
-        int mat[][]= new int[arcos.size()][arcos.size()];
         for (int i=0; i<nodos.size();i++) {
             for (int j=0; j<nodos.size();j++) {
                 if(i==j){
@@ -196,10 +197,126 @@ public class Frame1 extends javax.swing.JFrame {
 //        }
     }
     
-    private void Camino(){
-        //Keep waiting HAHA
+    private void GettingStarted(Graphics g){
+        ArrayList<Integer> camino =new ArrayList<>();
+        int vec[]={3000,3000,3000,3000};
+        int currentx[]={0,0,0,0};
+        int currenty[]={0,0,0,0};
+        int i;
+        String begin=nodoinicial;
+        camino.add(Integer.parseInt(begin));
+        //System.out.println(Arrays.toString(vec));
+        g.setColor(Color.red);
+        g.fillOval(inx-13, iny-13, 25, 25);
+        while(!begin.equals(nodofinal)){
+            i = 0;
+            for (Edge arco : arcos) {
+                if(Integer.toString(arco.nodoinicial).equals(begin)){
+                    //g.fillOval(arco.x2-13, arco.y2-13, 25, 25);
+                    vec[i]=arco.nodofinal;
+                    currentx[i]=arco.x2;
+                    currenty[i]=arco.y2;
+                    i++;
+                }
+            }
+            //Los datos que hay en el vector diferentes de cero, son los nodos adyacentes
+            //Elegir el que esté más cerca al nodofinal
+            int choose=3000, indexch=0;
+            for (int j = 0; j < vec.length; j++) {
+                //Recorrer el vector y ver cual tiene una distancia menor al punto final..
+                if(vec[j]!=3000){
+                    //Ahora mi inicio es current y mi fin es nodofinal;
+                    int dis=(int)Math.sqrt(Math.pow(Math.abs(currentx[j]-fnx),2) + Math.pow(Math.abs(currenty[j]-fny),2));
+                    if(dis<choose){
+                        System.out.println(vec[j]+": "+dis);
+                        indexch=j;
+                        choose=dis;
+                    }
+                }
+            }
+            //g.fillOval(currentx[indexch]-13, currenty[indexch]-13, 25, 25);
+            camino.add(vec[indexch]);
+            System.out.println("The closest one is "+vec[indexch]);
+            begin=""+vec[indexch];
+        }
+        
+        //Buscar los nodos que estan en el arraylist en lo de aristas, y pintar las lineas, perdon x las tildes y eso..
+        i=0;
+        while(i<camino.size()-1){
+            int datoini=camino.get(i);
+            int datofin=camino.get(i+1);
+            for (Edge arco : arcos) {
+                if(arco.nodoinicial==datoini && arco.nodofinal==datofin){
+                    WidthLine(PanelMap.getGraphics(),arco.x1,arco.y1,arco.x2,arco.y2);
+                    break;
+                }
+            }
+            i++;
+        }
     }
     
+    private void WidthLine(Graphics g, int x1,int y1, int x2, int y2){
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(Color.red);
+        g2.setStroke(new BasicStroke(8));
+        g2.draw(new Line2D.Float(x1,y1,x2,y2));
+    }
+    
+    
+    
+    
+    private void Dijkstra(Graphics g){
+        //Mat es mi matriz de costos de todos  los nodos..
+        String path[][]=new String[nodos.size()][nodos.size()];
+        for (int i = 0; i < nodos.size(); i++) {
+            for (int j = 0; j < nodos.size(); j++) {
+                path[i][j]=""+3000;
+            }
+        }
+        //Cuando vaya a recorrer la matriz, debo omitir la columna cuyo valor es nodoinicial
+        //ya que en ese nunca hago nada porque ya sé que la distancia es cero..
+        
+        int sum=0;
+        int nodoactual=Integer.parseInt(nodoinicial);
+
+            boolean nodosdisponibles[]=new boolean [nodos.size()];
+            for (int i = 0; i < nodosdisponibles.length; i++) {
+                nodosdisponibles[i]=false;
+                
+            }
+            nodosdisponibles[nodoactual-1]=true;//iniciar el primero 
+            //Resto 1 porque aunque puede que sea el nodo n, en el vector estará en la posición n-1..
+            //O  sea que el nodo 34 está represetado por la posición 33 en el vector..
+            
+        //Falta el bucle para las filas..
+            for (int i = 0; i<arcos.size(); i++) {
+                if((i+1)==nodoactual){
+                    continue;
+                }
+                if((arcos.get(i).nodoinicial==nodoactual)){
+                    path[0][arcos.get(i).nodofinal-1]=""+arcos.get(i).dist;
+                }
+            }
+            int menor=3000, index=0;
+            for (int i = 0; i < nodos.size(); i++) {
+                if(Integer.parseInt(path[0][i])<menor){
+                    index=i;
+                    menor=Integer.parseInt(path[0][i]);
+                }
+            }
+            nodosdisponibles[index]=true;
+            nodoactual=index+1;
+            sum=sum+menor;
+            
+            //Antes de seguir el bucle, hay que hacer lo de bajar los valores..
+            
+        //Por aquí terminaría el bucle para las filas..   
+            
+            
+            for (int i = 0; i < nodos.size(); i++) {
+                System.out.print(nodosdisponibles[i]+"|");
+            }
+    }
     
 
     /**
