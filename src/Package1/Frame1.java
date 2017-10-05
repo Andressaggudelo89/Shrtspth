@@ -5,10 +5,13 @@
  */
 package Package1;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.geom.Line2D;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -22,7 +25,7 @@ public class Frame1 extends javax.swing.JFrame {
 
     ArrayList<Node> nodos;
     ArrayList<Edge> arcos;
-    Node nodoinicial = null, nodofinal = null;
+    String nodoinicial = null, nodofinal = null;
     int cont;
     int iniciox, inicioy, finx, finy;
     
@@ -37,6 +40,7 @@ public class Frame1 extends javax.swing.JFrame {
         setResizable(false);
         initComponents();
         Cargar();
+        MatrizDeCostos();
     }
     
     private void Cargar() {
@@ -47,36 +51,38 @@ public class Frame1 extends javax.swing.JFrame {
                 nodos.add(new Node((vector[0]),Integer.parseInt(vector[1]),Integer.parseInt(vector[2]),Color.BLACK));
             }
         } catch (IOException ex) {
-
+            System.out.println("Hubo un problema con las configuraciones internas..");
+            System.exit(0);
         }      
         try(FileReader f = new FileReader("Files/Aristas.txt"); BufferedReader b = new BufferedReader(f)){            
             while((cadena = b.readLine())!=null) {
-                String[] vector = cadena.split(",");  //nodoinicial,x1,y1,nodofinal,x2,y2
-                //int nodoinicial, int nodofinal, int x1, int y1, int x2, int y2, int dist
+                String[] vector = cadena.split(","); 
                 arcos.add(new Edge(Integer.parseInt(vector[0]), Integer.parseInt(vector[1]), Integer.parseInt(vector[2]),
                         Integer.parseInt(vector[3]) ,Integer.parseInt(vector[4]), Integer.parseInt(vector[5]), Integer.parseInt(vector[6])));
             }
         } catch (IOException ex) {
-            
+            System.out.println("Hubo un problema con las configuraciones internas..");
+            System.exit(0);
         }
     }
     
-        private void dibujar(Graphics g) {
-        int conta=1;
-        g.setColor(Color.black);
-        for (Node nodo : nodos) {
-            g.fillOval(nodo.posx-8, nodo.posy-8, 20, 20);
-            g.drawString(Integer.toString(conta), nodo.posx-11, nodo.posy-10);
-            conta++;
-        }
-        for (Edge arco : arcos) {
-            g.setColor(Color.DARK_GRAY);
-            g.drawLine(arco.x1, arco.y1,arco.x2,arco.y2);
-        }
-        }
     
+    private void dibujar(Graphics g) {
+    int conta=1;
+    g.setColor(Color.black);
+    for (Node nodo : nodos) {
+        g.fillOval(nodo.posx-8, nodo.posy-8, 20, 20);
+        g.drawString(Integer.toString(conta), nodo.posx-11, nodo.posy-10);
+        conta++;
+    }
+    g.setColor(Color.DARK_GRAY);
+    arcos.stream().forEach((arco) -> {
+        g.drawLine(arco.x1, arco.y1,arco.x2,arco.y2);
+    });
+    }
+
         
-        private void Choosingpoints(Graphics g) {
+    private void Choosingpoints(Graphics g) {
         PanelMap.addMouseListener(new MouseListener(){
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -101,7 +107,7 @@ public class Frame1 extends javax.swing.JFrame {
                     cont++;
                 }
             }
-            
+
             @Override
             public void mousePressed(MouseEvent e) {
             }
@@ -123,22 +129,22 @@ public class Frame1 extends javax.swing.JFrame {
     
     
     private void Calcularnodoscerca(int x1, int y1, int x2, int y2, Graphics g) {
-        
-        //Buscar el nodo que esté más cerca del nodo inicial..
+        //Buscar el nodo que esté más cerca del punto inicial..
         int dist=2000,x=0,y=0;
         double dist2;
         for (Node nodo : nodos) {
             dist2=Math.sqrt(Math.pow(Math.abs(x1-nodo.posx), 2) + Math.pow(Math.abs(y1-nodo.posy), 2));
             if(dist2<dist){
                 dist= (int)dist2;
+                nodoinicial=nodo.name;
                 x=nodo.posx;
                 y=nodo.posy;
             }
         }
-        g.setColor(Color.blue);
+        g.setColor(Color.red);
         g.fillOval(x-8, y-8, 20, 20);
         
-        //Buscar el nodo que esté más cerca del nodo final...
+        //Buscar el nodo que esté más cerca del punto final...
         dist=2000;
         x=0;
         y=0;
@@ -146,15 +152,55 @@ public class Frame1 extends javax.swing.JFrame {
             dist2=Math.sqrt(Math.pow(Math.abs(x2-nodo.posx), 2) + Math.pow(Math.abs(y2-nodo.posy), 2));
             if(dist2<dist){
                 dist= (int)dist2;
+                nodofinal=nodo.name;
                 x=nodo.posx;
                 y=nodo.posy;
             }
         }
-        g.setColor(Color.blue);
+        g.setColor(Color.red);
         g.fillOval(x-8, y-8, 20, 20);
-                
     }
+    
+    
+    private void WidthLine(Graphics g){
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(Color.red);
+        g2.setStroke(new BasicStroke(8));
+        g2.draw(new Line2D.Float(1,2,3,4));
+    }
+    
+    private void MatrizDeCostos(){
+        int mat[][]= new int[arcos.size()][arcos.size()];
+        for (int i=0; i<nodos.size();i++) {
+            for (int j=0; j<nodos.size();j++) {
+                if(i==j){
+                    mat[i][j]=0;
+                }else{
+                    mat[i][j]=333;
+                }
+            }
+        }
         
+        for (int i = 0; i < arcos.size(); i++) {
+            int ini = arcos.get(i).nodoinicial;
+            int fin = arcos.get(i).nodofinal;
+            int dis = arcos.get(i).dist;
+            mat[ini-1][fin-1]=dis;
+        }
+        
+//        for (int i=0; i<nodos.size();i++) {
+//            System.out.print("Nodo "+(i+1)+": ");
+//            for (int j=0; j<nodos.size();j++) {
+//                System.out.print(mat[i][j]+"|");
+//            }System.out.println();
+//        }
+    }
+    
+    private void Camino(){
+        //Keep waiting HAHA
+    }
+    
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -287,12 +333,10 @@ public class Frame1 extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void selectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selectActionPerformed
-        //dibujar(PanelMap.getGraphics());
+        dibujar(PanelMap.getGraphics());
         Choosingpoints(PanelMap.getGraphics());
     }//GEN-LAST:event_selectActionPerformed
 
-    
-    
     
     
     
@@ -334,7 +378,7 @@ public class Frame1 extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel PanelData;
     private javax.swing.JPanel PanelMain;
-    private javax.swing.JPanel PanelMap;
+    public javax.swing.JPanel PanelMap;
     private javax.swing.JPanel PanelTitle;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
