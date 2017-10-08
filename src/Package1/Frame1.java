@@ -222,7 +222,6 @@ public class Frame1 extends javax.swing.JFrame {
                     //Ahora mi inicio es current y mi fin es nodofinal;
                     int dis = (int) Math.sqrt(Math.pow(Math.abs(currentx[j] - fnx), 2) + Math.pow(Math.abs(currenty[j] - fny), 2));
                     if (dis < choose) {
-                        System.out.println(vec[j] + ": " + dis);
                         indexch = j;
                         choose = dis;
                     }
@@ -230,7 +229,6 @@ public class Frame1 extends javax.swing.JFrame {
             }
             //g.fillOval(currentx[indexch]-13, currenty[indexch]-13, 25, 25);
             camino.add(vec[indexch]);
-            System.out.println("The closest one is " + vec[indexch]);
             begin = "" + vec[indexch];
         }
 
@@ -249,6 +247,95 @@ public class Frame1 extends javax.swing.JFrame {
         }
     }
 
+    
+
+    private void Dijkstra(Graphics g) {
+        
+        //Mat es mi matriz de costos de todos los nodos (ya está hecha arriba!)..
+        
+        int nodoactual = Integer.parseInt(nodoinicial); //Nodo donde inicia el recorrido y que irá variando..
+        String path[][] = new String[nodos.size()][nodos.size()];
+        for (int i = 0; i < nodos.size(); i++) {
+            for (int j = 0; j < nodos.size(); j++) {
+                path[i][j] = String.valueOf(nodoactual)+"_50000";
+            }
+        }//Lleno mi matriz de distancias con el nodo actual y un número "infinito"..
+
+        boolean nodosdisponibles[] = new boolean[nodos.size()]; //Los nodos por los que voy pasando y ya no pasaré más..
+        //Están en False todos los nodos por defecto, cuando visito alguno, cambio a True..
+        nodosdisponibles[nodoactual - 1] = true;//iniciar el punto inicial como ya visitado..
+        int p = 0;
+        int suma=0;
+        while(p<nodos.size()){
+            //Recorro la lista de aristas para ver las que inician en nodoactual, luego agrego los nodos finles de esa..
+            for (int i = 0; i<arcos.size(); i++) {
+                if(i==(nodoactual-1)){
+                    if(i==0){
+                        path[p][4]=String.valueOf(197);
+                    }
+                    continue;   //No tengo nada que hacer en la columna del nodo actual porque ya sé su distancia..
+                }
+                if(arcos.get(i).nodoinicial==nodoactual){
+                    //Mirar que el nodofinal de este, no haya sido selecionado aún..
+                    if(!nodosdisponibles[arcos.get(i).nodofinal-1]){
+                        String aux1=path[p][arcos.get(i).nodofinal-1];
+                        String aux[]=aux1.split("_");
+                        if((arcos.get(i).dist+suma)<Integer.parseInt(aux[1])){
+                            //Asignar la suma más la distancia de esa arista..
+                            String val=String.valueOf(suma+arcos.get(i).dist);
+                            path[p][arcos.get(i).nodofinal-1]=String.valueOf(nodoactual)+"_"+val;
+                        }
+                    }
+                }
+            }
+            //Ya está llena toda esa fila, busca el menor o igual ahora..
+            int min=50000;
+            int index=0;
+            for (int i = 0; i < nodos.size(); i++) {
+                if(!nodosdisponibles[i]){//O sea si el nodo no ha sido seleccionado..
+                    String aux1=path[p][i];
+                    String aux[]=aux1.split("_");
+                    if(Integer.parseInt(aux[1])<=min){
+                        min=Integer.parseInt(aux[1]);
+                        index = i;
+                    }
+                }
+            }   //Así encuentro el menor de la columna..
+            nodosdisponibles[index]=true;
+            nodoactual=index+1;
+            suma=min;
+            p++;
+            if(p<path.length){  //Lleno la fila que viene con la anterior..
+                System.arraycopy(path[p-1], 0, path[p], 0, path.length);
+            }
+        }
+        //Ya aquí la matriz de recorridos está lista..
+        //Puedo obtener mi camino..
+        String finalpath=nodofinal+";";
+        String aux=path[p-1][Integer.parseInt(nodofinal)-1];
+        int var=0;
+        while(var!=Integer.parseInt(nodoinicial)){
+            String help[]=aux.split("_");
+            var=Integer.parseInt(help[0]);
+            if(var!=Integer.parseInt(nodoinicial)){
+                finalpath+=var+";";
+                aux=path[p-1][var-1];
+            }else{
+                finalpath+=var;
+            }
+        }
+        String help[]=finalpath.split(";");
+        int i = 0;
+        while(i<help.length-1){
+            for (Edge arco : arcos) {
+                if(arco.nodofinal==Integer.parseInt(help[i]) && arco.nodoinicial==Integer.parseInt(help[i+1])){
+                    WidthLine(PanelMap.getGraphics(), arco.x1, arco.y1, arco.x2, arco.y2);
+                }
+            }
+            i++;
+        }
+    }
+    
     private void WidthLine(Graphics g, int x1, int y1, int x2, int y2) {
         Graphics2D g2 = (Graphics2D) g;
         g2.setColor(Color.red);
@@ -257,82 +344,7 @@ public class Frame1 extends javax.swing.JFrame {
     }
     
     
-
-    private void Dijkstra(Graphics g) {
-        //Mat es mi matriz de costos de todos los nodos (ya está hecha arriba!)..
-        
-        int path[][] = new int[nodos.size()][nodos.size()];
-        for (int i = 0; i < nodos.size(); i++) {
-            for (int j = 0; j < nodos.size(); j++) {
-                path[i][j] = 5000;
-            }
-        }
-
-        int nodoactual = Integer.parseInt(nodoinicial); //Nodo donde inicia el recorrido..
-        int minimo[] = new int[nodos.size()];   //Aquí iré guardando los caminos más cortos a todos los nodos..
-        for (int i = 0; i < minimo.length; i++) {
-            minimo[i] = 5000;   //inicio todos los valores en "inifinito", (ninguna distance será 5000)..
-        }
-        
-        boolean nodosdisponibles[] = new boolean[nodos.size()]; //Los nodos por los que voy pasando y ya no paso anymore..
-        for (int i = 0; i < nodosdisponibles.length; i++) {
-            nodosdisponibles[i] = false;    //No he visitado ningún nodo, inicio en cero todos..
-        }
-        nodosdisponibles[nodoactual - 1] = true;//iniciar el punto inicial como ya visitado..
-        minimo[nodoactual-1]=0; //La distancia al nodo inicial es cero..
-        
-        String camino[]=new String[nodos.size()];
-        camino[nodoactual-1]="Hola soy el nodo "+(nodoactual)+" y vengo del principio, distancia=0";
-        System.out.println(camino[nodoactual-1]);
-        
-        int p = 0, suma=0;
-        while(p<nodos.size()){//Aún no sé, uno por inspección..
-            //Recorro la lista de aristas para ver los nodos adyacentes al nodoinicial..
-            for (int i = 0; i<arcos.size(); i++) {
-                if((i+1)==nodoactual){
-                    if(i==0){
-                        path[p][4]=197;
-                    }
-                    continue;   //No tengo nada que hacer en la columna del nodo actual porque ya sé su distancia..
-                }
-//                if(p>0){
-//                    path[p][arcos.get(i).nodofinal-1]=path[p-1][arcos.get(i).nodofinal-1];    
-//                    //A la fila que está abajo le asigno lo que está arriba, luego comparo con el nuevo valor..
-//                }                               
-                if(arcos.get(i).nodoinicial==nodoactual){
-                    path[p][arcos.get(i).nodofinal-1]=arcos.get(i).dist;
-                }
-            }
-            //Ahora tengo que buscar el menor en la fila p y le asigno a nodoactual la columna en la que esté más 1..
-            int min=5000;
-            int index=0;
-            for (int i = 0; i < nodos.size(); i++) {
-                if(!nodosdisponibles[i]){//O sea si el nodo no ha sido seleccionado..
-                    if(path[p][i]<=min){
-                        min=path[p][i];
-                        index = i;
-                    }
-                }
-            }
-            nodosdisponibles[index]=true;
-            camino[index]="Hola soy el nodo "+(nodoactual)+" y me dirijo al nodo "+(index+1)+", distancia="+min;
-            System.out.println(camino[index]);
-            nodoactual=index+1;
-            p++;
-        }
-        
-        
-        
-        
-        //Así va mi matriz..
-//        for (int i = 0; i<nodos.size(); i++) {
-//            for (int j = 0; j<nodos.size(); j++) {
-//                System.out.print(path[i][j]+"|");
-//            }System.out.println();
-//        }
-        
-
-    }
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
